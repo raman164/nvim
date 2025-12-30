@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git submodule:*)",
+      "Bash(make install_jsregexp:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(~/.local/share/nvim/mason/bin/lua-language-server:*)",
+      "Bash(pacman -Ss:*)",
+      "Bash(sudo pacman:*)",
+      "Bash(nvim:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nUpdate nvim configuration\n\n- Modern lazy.nvim plugin manager setup\n- LSP configuration with Mason\n- Autocompletion with nvim-cmp and LuaSnip\n- Formatting and linting support\n- Full plugin suite for development\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git config:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

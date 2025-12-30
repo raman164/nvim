@@ -1,0 +1,10 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Neovim plugin directory (managed by lazy.nvim)
+plugin/
+
+# Neovim state and cache
+.luarc.json
+.neoconf.json

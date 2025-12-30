@@ -1,0 +1,313 @@
+return {
+    "neovim/nvim-lspconfig",
+    event = { "BufReadPre", "BufNewFile" },
+    dependencies = {
+        "hrsh7th/cmp-nvim-lsp",
+        { "williamboman/mason.nvim", config = true },
+        "williamboman/mason-lspconfig.nvim",
+        "WhoIsSethDaniel/mason-tool-installer.nvim", -- For automatic installation
+    },
+    config = function()
+        -- Core setup
+        local lspconfig = require("lspconfig")
+        local mason_lspconfig = require("mason-lspconfig")
+        local cmp_nvim_lsp = require("cmp_nvim_lsp")
+        local mason_tool_installer = require("mason-tool-installer")
+
+        -- Enhanced capabilities with nvim-cmp
+        local capabilities = vim.lsp.protocol.make_client_capabilities()
+        capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
+        capabilities.textDocument.completion.completionItem = {
+            snippetSupport = true,
+            resolveSupport = {
+                properties = {
+                    "documentation",
+                    "detail",
+                    "additionalTextEdits",
+                },
+            },
+        }
+
+        -- Language servers configuration
+        local servers = {
+            -- Web Development
+            "ts_ls", -- TypeScript/JavaScript
+            "eslint", -- ESLint
+            "html", -- HTML
+            "cssls", -- CSS
+            "tailwindcss", -- Tailwind CSS
+            "emmet_ls", -- Emmet
+            "jsonls", -- JSON
+            "yamlls", -- YAML
+
+            -- Programming Languages
+            "pyright", -- Python
+            "clangd", -- C/C++
+            "gopls", -- Go
+            "rust_analyzer", -- Rust
+            "jdtls", -- Java
+            "kotlin_language_server", -- Kotlin
+            "csharp_ls", -- C#
+            "ruby_ls", -- Ruby
+            "solargraph", -- Ruby (alternative)
+            "lua_ls", -- Lua
+            "zls", -- Zig
+            "ocamllsp", -- OCaml
+            "hls", -- Haskell
+            "erlangls", -- Erlang
+            "elixirls", -- Elixir
+            "groovyls", -- Groovy
+            "perlnavigator", -- Perl
+            "julials", -- Julia
+            "r_language_server", -- R
+            "dartls", -- Dart
+            "nimls", -- Nim
+
+            -- Shell/Config
+            "bashls", -- Bash
+            "powershell_es", -- PowerShell
+            "terraformls", -- Terraform
+            "dockerls", -- Docker
+            "docker_compose_language_service", -- Docker Compose
+
+            -- PHP
+            "intelephense", -- PHP
+            "phpactor", -- PHP (alternative)
+
+            -- SQL
+            "sqlls", -- SQL
+            "sqls", -- SQL (alternative)
+
+            -- Markdown
+            "marksman", -- Markdown
+
+            -- Other
+            "graphql", -- GraphQL
+            "vuels", -- Vue
+            "svelte", -- Svelte
+            "angularls", -- Angular
+        }
+
+        -- Server-specific configurations
+        local server_configs = {
+            lua_ls = {
+                settings = {
+                    Lua = {
+                        runtime = { version = "LuaJIT" },
+                        diagnostics = { globals = { "vim" } },
+                        workspace = {
+                            library = vim.api.nvim_get_runtime_file("", true),
+                            checkThirdParty = false,
+                        },
+                        telemetry = { enable = false },
+                    },
+                },
+            },
+            ts_ls = {
+                settings = {
+                    completions = {
+                        completeFunctionCalls = true,
+                    },
+                },
+            },
+            pyright = {
+                settings = {
+                    pyright = {
+                        disableOrganizeImports = false,
+                        analysis = {
+                            useLibraryCodeForTypes = true,
+                            autoSearchPaths = true,
+                            diagnosticMode = "workspace",
+                            typeCheckingMode = "basic",
+                            diagnosticSeverityOverrides = {
+                                reportUndefinedVariable = "none", -- E0611 (similar to E305)
+                                reportLambdaAssignment = "none", -- E731
+                                reportMissingParameterType = "none", -- E501 related
+                                reportMissingTypeStubs = "none", -- E501 related
+                                reportGeneralTypeIssues = "none", -- Catches many style issues
+                            },
+                            -- Alternatively, disable specific diagnostics by code
+                            disableDiagnostics = {
+                                "reportUndefinedVariable", -- E305 equivalent
+                                "reportLambdaAssignment", -- E731
+                                "reportMissingParameterType", -- E501 related
+                            },
+                        },
+                    },
+                },
+            },
+            clangd = {
+                capabilities = {
+                    offsetEncoding = { "utf-16" },
+                },
+                cmd = {
+                    "clangd",
+                    "--background-index",
+                    "--clang-tidy",
+                    "--header-insertion=iwyu",
+                    "--completion-style=detailed",
+                    "--function-arg-placeholders",
+                    "--fallback-style=llvm",
+                },
+            },
+            gopls = {
+                settings = {
+                    gopls = {
+                        analyses = {
+                            unusedparams = true,
+                        },
+                        staticcheck = true,
+                        gofumpt = true,
+                    },
+                },
+            },
+            rust_analyzer = {
+                settings = {
+                    ["rust-analyzer"] = {
+                        cargo = {
+                            allFeatures = true,
+                        },
+                        checkOnSave = {
+                            command = "clippy",
+                        },
+                    },
+                },
+            },
+            html = {
+                filetypes = { "html", "htmldjango" },
+            },
+            cssls = {
+                settings = {
+                    css = {
+                        validate = true,
+                        lint = {
+                            unknownAtRules = "ignore",
+                        },
+                    },
+                    scss = {
+                        validate = true,
+                    },
+                    less = {
+                        validate = true,
+                    },
+                },
+            },
+            jsonls = {
+                settings = {
+                    json = {
+                        schemas = require("schemastore").json.schemas(),
+                        validate = { enable = true },
+                    },
+                },
+            },
+            yamlls = {
+                settings = {
+                    yaml = {
+                        schemas = {
+                            ["https://json.schemastore.org/github-workflow.json"] = "/.github/workflows/*",
+                        },
+                    },
+                },
+            },
+            intelephense = {
+                settings = {
+                    intelephense = {
+                        files = {
+                            maxSize = 5000000,
+                        },
+                        environment = {
+                            includePaths = { "vendor" },
+                        },
+                    },
+                },
+            },
+        }
+
+        -- Setup Mason with automatic tool installation
+        mason_tool_installer.setup({
+            ensure_installed = servers,
+            automatic_installation = true,
+        })
+
+        -- Configure the LSP servers
+        mason_lspconfig.setup_handlers({
+            -- Default handler for all servers
+            function(server_name)
+                local config = server_configs[server_name] or {}
+                config.capabilities = capabilities
+
+                -- Special handling for rust_analyzer which might be installed via rustup
+                if server_name == "rust_analyzer" then
+                    local rust_tools_ok, rust_tools = pcall(require, "rust-tools")
+                    if rust_tools_ok then
+                        rust_tools.setup({
+                            server = config,
+                            tools = {
+                                inlay_hints = {
+                                    auto = true,
+                                },
+                            },
+                        })
+                        return
+                    end
+                end
+
+                lspconfig[server_name].setup(config)
+            end,
+        })
+
+        -- Modern diagnostic configuration
+        vim.diagnostic.config({
+            virtual_text = {
+                prefix = "●",
+                spacing = 4,
+            },
+            signs = {
+                text = {
+                    [vim.diagnostic.severity.ERROR] = " ",
+                    [vim.diagnostic.severity.WARN] = " ",
+                    [vim.diagnostic.severity.HINT] = " ",
+                    [vim.diagnostic.severity.INFO] = " ",
+                },
+            },
+            underline = true,
+            update_in_insert = false,
+            severity_sort = true,
+            float = {
+                border = "rounded",
+                source = "always",
+                header = "",
+                prefix = "",
+            },
+        })
+
+        -- Key mappings and autocmds for LSP
+        vim.api.nvim_create_autocmd("LspAttach", {
+            group = vim.api.nvim_create_augroup("UserLspConfig", {}),
+            callback = function(ev)
+                -- Enable completion triggered by <c-x><c-o>
+                vim.bo[ev.buf].omnifunc = "v:lua.vim.lsp.omnifunc"
+
+                -- Buffer local mappings
+                local opts = { buffer = ev.buf }
+                vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+                vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+                vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+                vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+                vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
+                vim.keymap.set("n", "<leader>wa", vim.lsp.buf.add_workspace_folder, opts)
+                vim.keymap.set("n", "<leader>wr", vim.lsp.buf.remove_workspace_folder, opts)
+                vim.keymap.set("n", "<leader>wl", function()
+                    print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+                end, opts)
+                vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, opts)
+                vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+                vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
+                vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+                vim.keymap.set("n", "<leader>f", function()
+                    vim.lsp.buf.format({ async = true })
+                end, opts)
+            end,
+        })
+    end,
+}

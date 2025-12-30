@@ -1,0 +1,61 @@
+return {
+  "neovim/nvim-lspconfig",
+  event = { "BufReadPre", "BufNewFile" },
+  dependencies = {
+    "hrsh7th/cmp-nvim-lsp",
+    "williamboman/mason.nvim",
+    "williamboman/mason-lspconfig.nvim",
+  },
+  config = function()
+    -- Core setup
+    local lspconfig = require("lspconfig")
+    local mason_lspconfig = require("mason-lspconfig")
+    local cmp_nvim_lsp = require("cmp_nvim_lsp")
+
+    -- Enhanced capabilities
+    local capabilities = cmp_nvim_lsp.default_capabilities()
+    capabilities.textDocument.completion.completionItem.snippetSupport = true
+
+    -- Only use lspconfig server names here
+    local servers = {
+      "pyright",    -- Python
+      "clangd",     -- C/C++
+      "gopls",      -- Go
+      "lua_ls",     -- Lua
+      "ts_ls",
+      "eslint",    -- TypeScript/JavaScript
+      "intelephense", -- PHP
+      "bashls",     -- Bash
+      "html",       -- HTML
+      "cssls",      -- CSS
+      "emmet_ls",   -- Emmet
+    }
+
+    -- Server-specific configurations
+    local server_configs = {
+      lua_ls = {
+        settings = {
+          Lua = {
+            diagnostics = { globals = { "vim" } },
+            workspace = { checkThirdParty = false },
+          },
+        },
+      },
+      -- Add other server-specific configs here
+    }
+
+    -- This is the crucial part - use ONLY lspconfig names
+    mason_lspconfig.setup({
+      ensure_installed = servers,
+    })
+
+    -- Configure the LSP servers
+    mason_lspconfig.setup_handlers({
+      function(server_name)
+        local config = server_configs[server_name] or {}
+        config.capabilities = capabilities
+        lspconfig[server_name].setup(config)
+      end,
+    })
+  end
+}

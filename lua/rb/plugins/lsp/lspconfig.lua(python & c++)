@@ -1,0 +1,124 @@
+return {
+  "neovim/nvim-lspconfig",
+  event = { "BufReadPre", "BufNewFile" },
+  dependencies = {
+    "hrsh7th/cmp-nvim-lsp",
+    "williamboman/mason.nvim",
+    "williamboman/mason-lspconfig.nvim",
+    "mfussenegger/nvim-dap",              -- Debug Adapter Protocol
+    "mfussenegger/nvim-dap-python",       -- Python debugging
+    "ravenxrz/DAPInstall.nvim",           -- Debugger installer
+    { "folke/neodev.nvim", opts = {} },   -- Lua dev (for init.lua)
+  },
+  config = function()
+    -- Imports with error handling
+    local lspconfig = require("lspconfig")
+    local mason_lspconfig = require("mason-lspconfig")
+    local cmp_nvim_lsp = require("cmp_nvim_lsp")
+    local keymap = vim.keymap
+
+    -- ========================
+    -- 1. Keymaps (Python/C++ Focused)
+    -- ========================
+    vim.api.nvim_create_autocmd("LspAttach", {
+      group = vim.api.nvim_create_augroup("UserLspConfig", {}),
+      callback = function(ev)
+        local opts = { buffer = ev.buf, silent = true }
+
+        -- Navigation
+        keymap.set("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts) -- Jump to definition
+        keymap.set("n", "gr", "<cmd>Telescope lsp_references<CR>", opts)  -- Find references
+        keymap.set("n", "K", vim.lsp.buf.hover, opts)                     -- Doc hover
+
+        -- Code Actions
+        keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)      -- Quickfixes
+        keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)           -- Rename symbol
+
+        -- Debugging (DAP)
+        keymap.set("n", "<F5>", "<cmd>lua require('dap').continue()<CR>", opts)
+        keymap.set("n", "<F10>", "<cmd>lua require('dap').step_over()<CR>", opts)
+        keymap.set("n", "<F11>", "<cmd>lua require('dap').step_into()<CR>", opts)
+        keymap.set("n", "<F12>", "<cmd>lua require('dap').step_out()<CR>", opts)
+        keymap.set("n", "<leader>b", "<cmd>lua require('dap').toggle_breakpoint()<CR>", opts)
+
+        -- Formatting (disable if using formatter.nvim)
+        keymap.set("n", "<leader>fm", function()
+          vim.lsp.buf.format({ async = true })
+        end, opts)
+      end,
+    })
+
+    -- ========================
+    -- 2. LSP Capabilities
+    -- ========================
+    local capabilities = cmp_nvim_lsp.default_capabilities()
+    capabilities.textDocument.completion.completionItem.snippetSupport = true
+
+    -- ========================
+    -- 3. Python Setup (Pyright)
+    -- ========================
+    lspconfig.pyright.setup({
+      capabilities = capabilities,
+      settings = {
+        pyright = {
+          disableOrganizeImports = false, -- Auto-format imports
+        },
+        python = {
+          analysis = {
+            typeCheckingMode = "basic",   -- "off", "basic", "strict"
+            autoSearchPaths = true,
+            useLibraryCodeForTypes = true,
+          },
+        },
+      },
+    })
+
+    -- ========================
+    -- 4. C++ Setup (clangd)
+    -- ========================
+    lspconfig.clangd.setup({
+      capabilities = capabilities,
+      cmd = {
+        "clangd",
+        "--background-index",             -- Faster startup
+        "--clang-tidy",                  -- Lint integration
+        "--header-insertion=never",      -- Disable auto headers
+      },
+      filetypes = { "c", "cpp", "objc", "objcpp" },
+    })
+
+    -- ========================
+    -- 5. Debugger Setup (DAP)
+    -- ========================
+    -- Python Debugger
+    require("dap-python").setup("~/.virtualenvs/debugpy/bin/python") -- Path to debugpy
+
+    -- C++ Debugger (lldb/vscode-cpptools)
+    local dap = require("dap")
+    dap.adapters.lldb = {
+      type = "executable",
+      command = "/usr/bin/lldb-vscode", -- Install via system package manager
+      name = "lldb",
+    }
+    dap.configurations.cpp = {
+      {
+        name = "Launch",
+        type = "lldb",
+        request = "launch",
+        program = function()
+          return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+        end,
+        cwd = "${workspaceFolder}",
+        stopOnEntry = false,
+        args = {},
+      },
+    }
+
+    -- ========================
+    -- 6. Auto-Install LSPs
+    -- ========================
+    mason_lspconfig.setup({
+      ensure_installed = { "pyright", "clangd" }, -- Add others as needed
+    })
+  end,
+}
